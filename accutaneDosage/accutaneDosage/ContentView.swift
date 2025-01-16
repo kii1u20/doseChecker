@@ -59,6 +59,24 @@ struct ContentView: View {
     @AppStorage("goalMgKg") private var goalMgKg: String = ""
     @State private var showingResetAlert = false
     
+    @FocusState private var isDoseFieldFocused: Bool
+    
+    @AppStorage("doseHistory") private var doseHistoryData: Data = Data()
+    @State private var history: [DoseEntry] = []
+    
+    init() {
+        // Load history from AppStorage
+        if let decoded = try? JSONDecoder().decode([DoseEntry].self, from: doseHistoryData) {
+            _history = State(initialValue: decoded)
+        }
+    }
+    
+    private func saveHistory() {
+        if let encoded = try? JSONEncoder().encode(history) {
+            doseHistoryData = encoded
+        }
+    }
+    
     // Calculate maximum dose based on weight
     private var maxDose: Double {
         guard let weightKg = Double(weight) else { return 0 }
@@ -87,6 +105,7 @@ struct ContentView: View {
             }
             .padding()
             .navigationTitle("Dose Tracker")
+            .ignoresSafeArea(.keyboard) // Add this modifier
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -101,6 +120,8 @@ struct ContentView: View {
                             withAnimation {
                                 totalDose = 0
                                 currentDoseString = ""
+                                history = []
+                                saveHistory()
                             }
                         }
                     } message: {
@@ -144,26 +165,28 @@ struct ContentView: View {
     private var mainTrackerView: some View {
         VStack(spacing: 20) {
             // Total dose display
-            VStack {
-                Text("Total Dose Taken")
-                    .font(.headline)
-                FlipCounter(value: totalDose, unitOfMeasurement: "mg", duration: 0.5)
-                Text("Total Dose per kg")
-                    .bold()
-                FlipCounter(value: totalDosePerKg, unitOfMeasurement: "mg/kg", duration: 0.5)
-                
-                PillProgressView(
-                    value: totalDose,
-                    maxValue: maxDose,
-                    color: remainingDose <= 20 && remainingDose > 0 ? .orange : remainingDose <= 0 ? .red : .blue
-                )
-                .frame(height: 20)
+//            ScrollView {
+                VStack {
+                    Text("Total Dose Taken")
+                        .font(.headline)
+                    FlipCounter(value: totalDose, unitOfMeasurement: "mg", duration: 0.5)
+                    Text("Total Dose per kg")
+                        .bold()
+                    FlipCounter(value: totalDosePerKg, unitOfMeasurement: "mg/kg", duration: 0.5)
+                    
+                    PillProgressView(
+                        value: totalDose,
+                        maxValue: maxDose,
+                        color: remainingDose <= 20 && remainingDose > 0 ? .orange : remainingDose <= 0 ? .red : .blue
+                    )
+                    .frame(height: 20)
+                    .padding()
+                }
                 .padding()
-            }
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.blue.opacity(0.5))
-            .cornerRadius(10)
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.5))
+                .cornerRadius(10)
+//            }
             
             // Maximum and remaining dose info
             VStack(spacing: 8) {
@@ -176,6 +199,7 @@ struct ContentView: View {
             TextField("Enter dose (mg)", text: $currentDoseString)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.decimalPad)
+                .focused($isDoseFieldFocused)
             
             // Add dose button
             Button("Dose Taken") {
@@ -183,6 +207,11 @@ struct ContentView: View {
                     withAnimation {
                         totalDose += dose
                         currentDoseString = ""
+                        
+                        // Add to history
+                        let newEntry = DoseEntry(id: UUID(), dose: dose, timestamp: Date())
+                        history.append(newEntry)
+                        saveHistory()
                     }
                 }
             }
@@ -202,6 +231,14 @@ struct ContentView: View {
             
             Spacer()
             
+            NavigationLink {
+                HistoryView(history: $history, totalDose: $totalDose, saveAction: saveHistory)
+            } label: {
+                Label("View History", systemImage: "clock.arrow.circlepath")
+                    .font(.headline)
+            }
+            .buttonStyle(.bordered)
+            
             // Weight update button
             Button("Update Weight and Goal") {
                 withAnimation {
@@ -209,6 +246,9 @@ struct ContentView: View {
                 }
             }
             .font(.footnote)
+        }
+        .onTapGesture {
+            isDoseFieldFocused = false
         }
     }
 }
