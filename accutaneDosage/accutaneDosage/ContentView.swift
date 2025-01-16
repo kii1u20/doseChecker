@@ -1,5 +1,29 @@
 import SwiftUI
 
+struct PillProgressView: View {
+    let value: Double
+    let maxValue: Double
+    let color: Color
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // Background pill
+                Capsule()
+                    .foregroundColor(Color(.systemGray5))
+                    .frame(height: 20)
+                
+                // Filled progress pill
+                Capsule()
+                    .frame(width: min(CGFloat(value)/CGFloat(maxValue) * geometry.size.width, geometry.size.width), height: 20)
+                    .foregroundColor(color)
+                    .animation(.easeInOut, value: value)
+            }
+        }
+    }
+}
+
+
 struct FlipCounter: View {
     let value: Double
     let duration: Double
@@ -17,7 +41,7 @@ struct FlipCounter: View {
         Text("\(animatingValue, specifier: "%.1f") \(unitOfMeasurement)")
             .font(.largeTitle)
             .bold()
-            .onChange(of: value) { newValue in
+            .onChange(of: value) { oldValue, newValue in
                 withAnimation(.easeInOut(duration: duration)) {
                     // Animate through intermediate values
                     animatingValue = newValue
@@ -32,12 +56,13 @@ struct ContentView: View {
     @AppStorage("totalDose") private var totalDose: Double = 0
     @AppStorage("weight") private var weight: String = ""
     @AppStorage("showWeightPrompt") private var showWeightPrompt: Bool = true
+    @AppStorage("goalMgKg") private var goalMgKg: String = ""
     @State private var showingResetAlert = false
     
-    // Calculate maximum dose based on weight (120mg/kg)
+    // Calculate maximum dose based on weight
     private var maxDose: Double {
         guard let weightKg = Double(weight) else { return 0 }
-        return weightKg * 120
+        return weightKg * (Double(goalMgKg) ?? 0)
     }
     
     // Calculate remaining dose
@@ -89,10 +114,17 @@ struct ContentView: View {
     
     private var weightInputView: some View {
         VStack(spacing: 20) {
-            Text("Please enter your weight to begin")
+            Text("Please enter your weight")
                 .font(.headline)
             
             TextField("Weight in kg", text: $weight)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .keyboardType(.decimalPad)
+            
+            Text("Please enter your goal mg/kg")
+                .font(.headline)
+            
+            TextField("Goal in mg/kg", text: $goalMgKg)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .keyboardType(.decimalPad)
             
@@ -103,7 +135,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .disabled(weight.isEmpty)
+            .disabled(weight.isEmpty || goalMgKg.isEmpty)
             .buttonStyle(.borderedProminent)
         }
         .padding()
@@ -119,6 +151,14 @@ struct ContentView: View {
                 Text("Total Dose per kg")
                     .bold()
                 FlipCounter(value: totalDosePerKg, unitOfMeasurement: "mg/kg", duration: 0.5)
+                
+                PillProgressView(
+                    value: totalDose,
+                    maxValue: maxDose,
+                    color: remainingDose <= 20 && remainingDose > 0 ? .orange : remainingDose <= 0 ? .red : .blue
+                )
+                .frame(height: 20)
+                .padding()
             }
             .padding()
             .frame(maxWidth: .infinity)
@@ -163,7 +203,7 @@ struct ContentView: View {
             Spacer()
             
             // Weight update button
-            Button("Update Weight") {
+            Button("Update Weight and Goal") {
                 withAnimation {
                     showWeightPrompt = true
                 }
