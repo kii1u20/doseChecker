@@ -61,19 +61,24 @@ struct ContentView: View {
     
     @FocusState private var isDoseFieldFocused: Bool
     
-    @AppStorage("doseHistory") private var doseHistoryData: Data = Data()
     @State private var history: [DoseEntry] = []
     
-    init() {
-        // Load history from AppStorage
-        if let decoded = try? JSONDecoder().decode([DoseEntry].self, from: doseHistoryData) {
-            _history = State(initialValue: decoded)
+    private func saveHistory() {
+        do {
+            let data = try JSONEncoder().encode(history)
+            let fileURL = FileManager.documentsDirectory.appendingPathComponent("doseHistory.json")
+            try data.write(to: fileURL)
+        } catch {
+            print("Error saving history: \(error)")
         }
     }
     
-    private func saveHistory() {
-        if let encoded = try? JSONEncoder().encode(history) {
-            doseHistoryData = encoded
+    private func loadHistory() {
+        let fileURL = FileManager.documentsDirectory.appendingPathComponent("doseHistory.json")
+        if let data = try? Data(contentsOf: fileURL) {
+            if let decoded = try? JSONDecoder().decode([DoseEntry].self, from: data) {
+                history = decoded
+            }
         }
     }
     
@@ -122,6 +127,7 @@ struct ContentView: View {
                                 currentDoseString = ""
                                 history = []
                                 saveHistory()
+                                FileManager.clearImageStorage()
                             }
                         }
                     } message: {
@@ -130,6 +136,9 @@ struct ContentView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: showWeightPrompt)
+        }
+        .task {
+            loadHistory()
         }
     }
     
@@ -165,7 +174,7 @@ struct ContentView: View {
     private var mainTrackerView: some View {
         VStack(spacing: 20) {
             // Total dose display
-//            ScrollView {
+            ScrollView {
                 VStack {
                     Text("Total Dose Taken")
                         .font(.headline)
@@ -186,37 +195,38 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color.blue.opacity(0.5))
                 .cornerRadius(10)
-//            }
-            
-            // Maximum and remaining dose info
-            VStack(spacing: 8) {
-                Text("Maximum Dose: \(maxDose, specifier: "%.1f") mg")
-                Text("Remaining: \(remainingDose, specifier: "%.1f") mg")
-            }
-            .font(.subheadline)
-            
-            // New dose input
-            TextField("Enter dose (mg)", text: $currentDoseString)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .keyboardType(.decimalPad)
-                .focused($isDoseFieldFocused)
-            
-            // Add dose button
-            Button("Dose Taken") {
-                if let dose = Double(currentDoseString) {
-                    withAnimation {
-                        totalDose += dose
-                        currentDoseString = ""
-                        
-                        // Add to history
-                        let newEntry = DoseEntry(id: UUID(), dose: dose, timestamp: Date())
-                        history.append(newEntry)
-                        saveHistory()
+                
+                // Maximum and remaining dose info
+                VStack(spacing: 8) {
+                    Text("Maximum Dose: \(maxDose, specifier: "%.1f") mg")
+                    Text("Remaining: \(remainingDose, specifier: "%.1f") mg")
+                }
+                .font(.subheadline)
+                
+                // New dose input
+                TextField("Enter dose (mg)", text: $currentDoseString)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .keyboardType(.decimalPad)
+                    .focused($isDoseFieldFocused)
+                
+                // Add dose button
+                Button("Dose Taken") {
+                    if let dose = Double(currentDoseString) {
+                        withAnimation {
+                            totalDose += dose
+                            currentDoseString = ""
+                            
+                            // Add to history
+                            let newEntry = DoseEntry(id: UUID(), dose: dose, timestamp: Date())
+                            history.append(newEntry)
+                            saveHistory()
+                        }
                     }
                 }
+                .disabled(currentDoseString.isEmpty)
+                .buttonStyle(.borderedProminent)
             }
-            .disabled(currentDoseString.isEmpty)
-            .buttonStyle(.borderedProminent)
+            .scrollDisabled(true) //Maybe leave enabled to dismiss keyboard by scrolling
             
             // Warning message if close to max dose
             if remainingDose <= 20 && remainingDose > 0 {
