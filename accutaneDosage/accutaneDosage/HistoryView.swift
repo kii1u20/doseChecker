@@ -34,11 +34,11 @@ struct HistoryView: View {
                                     .foregroundColor(.secondary)
                             }
                             
-//                            if entry.imageData?.isEmpty == false {
-//                                Spacer()
-//                                Image(systemName: "photo.fill")
-//                                    .foregroundColor(.blue)
-//                            }
+                            if entry.imageNames?.isEmpty == false {
+                                Spacer()
+                                Image(systemName: "photo.fill")
+                                    .foregroundColor(.blue)
+                            }
                         }
                     }
                 }
