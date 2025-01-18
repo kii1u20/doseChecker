@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct accutaneDosageApp: App {
+    @StateObject private var doseTrackerVM = DoseTrackerViewModel()
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
+                .environmentObject(doseTrackerVM)
         }
     }
 }
