@@ -1,9 +1,16 @@
 import SwiftUI
+import LazyPager
+import InteractiveImageView
 
 struct DoseDetailView: View {
     @Binding var entry: DoseEntry
     @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
+    @State private var selectedImageForZoom: UIImage?
+    @State private var showZoomedImage = false
+    @State var tapLocation: CGPoint = .zero
+    @State var opacity: CGFloat = 0 // Dismiss gesture background opacity
+
     var saveAction: () -> Void
     
     private func saveImages(_ images: [UIImage]) {
@@ -34,52 +41,75 @@ struct DoseDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Dose Information
-                Group {
-                    Text("\(entry.dose, specifier: "%.1f") mg")
-                        .font(.title)
-                        .bold()
-                    
-                    Text(entry.timestamp.formatted(date: .long, time: .complete))
-                        .foregroundColor(.secondary)
-                }
-                
-                // Image Gallery
-                if !selectedImages.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(selectedImages.indices, id: \.self) { index in
-                                Image(uiImage: selectedImages[index])
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 200)
-                                    .cornerRadius(10)
-                            }
-                        }
-                    }
-                }
-                
-                Button(action: {
-                    showImagePicker = true
-                }) {
-                    Label("Add Images", systemImage: "photo.fill")
-                }
-                .buttonStyle(.bordered)
-            }
-            .padding()
-        }
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(images: $selectedImages)
-                .onDisappear() {
-                    saveImages(selectedImages)
-                    saveAction()
-                }
-            
-        }
-        .task {
-            selectedImages = loadImages()
-        }
-    }
-}
+         ZStack { // Use ZStack to layer the overlay
+             ScrollView {
+                 VStack(spacing: 20) {
+                     Group {
+                         Text("\(entry.dose, specifier: "%.1f") mg")
+                             .font(.title)
+                             .bold()
+
+                         Text(entry.timestamp.formatted(date: .long, time: .complete))
+                             .foregroundColor(.secondary)
+                     }
+
+                     if !selectedImages.isEmpty {
+                         ScrollView(.horizontal, showsIndicators: false) {
+                             HStack {
+                                 ForEach(selectedImages.indices, id: \.self) { index in
+                                     Image(uiImage: selectedImages[index])
+                                         .resizable()
+                                         .scaledToFit()
+                                         .frame(height: 200)
+                                         .cornerRadius(10)
+                                         .onTapGesture {
+                                             selectedImageForZoom = selectedImages[index]
+                                             showZoomedImage = true
+                                         }
+                                 }
+                             }
+                         }
+                     }
+
+                     Button(action: {
+                         showImagePicker = true
+                     }) {
+                         Label("Add Images", systemImage: "photo.fill")
+                     }
+                     .buttonStyle(.bordered)
+                 }
+                 .padding()
+             }
+             .sheet(isPresented: $showImagePicker) {
+                 ImagePicker(images: $selectedImages)
+                     .onDisappear() {
+                         saveImages(selectedImages)
+                         saveAction()
+                     }
+             }
+             .sheet(isPresented: $showZoomedImage) {
+                 if let image = selectedImageForZoom {
+                     InteractiveImage(image: image, zoomInteraction: .init(location: tapLocation, scale: 1.2, animated: true))
+                 }
+             }
+//             .fullScreenCover(isPresented: $showZoomedImage) {
+//                 if let image = selectedImageForZoom {
+//                     let imageData = image.jpegData(compressionQuality: 1.0) ?? Data()
+//                     let imageData2 = selectedImages[2].jpegData(compressionQuality: 1.0) ?? Data()
+//                     LazyPager(data: [imageData, imageData2]) { data in
+//                         Image(uiImage: UIImage(data: data)!)
+//                             .resizable()
+//                             .scaledToFit()
+//                     }
+//                     .zoomable(min: 1, max: 5)
+//                     .onDismiss() {
+//                         showZoomedImage = false
+//                     }
+//                 }
+//             }
+         }
+         .task {
+             selectedImages = loadImages()
+         }
+     }
+ }

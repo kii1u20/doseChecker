@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		48F194842D3D80E1005D4FBA /* LazyPager in Frameworks */ = {isa = PBXBuildFile; productRef = 48F194832D3D80E1005D4FBA /* LazyPager */; };
+		48F1948C2D3D8E39005D4FBA /* InteractiveImageView in Frameworks */ = {isa = PBXBuildFile; productRef = 48F1948B2D3D8E39005D4FBA /* InteractiveImageView */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		489963B52D382E4200B7156B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +57,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				48F1948C2D3D8E39005D4FBA /* InteractiveImageView in Frameworks */,
+				48F194842D3D80E1005D4FBA /* LazyPager in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +119,8 @@
 			);
 			name = accutaneDosage;
 			packageProductDependencies = (
+				48F194832D3D80E1005D4FBA /* LazyPager */,
+				48F1948B2D3D8E39005D4FBA /* InteractiveImageView */,
 			);
 			productName = accutaneDosage;
 			productReference = 489963A42D382E4100B7156B /* accutaneDosage.app */;
@@ -195,6 +204,10 @@
 			);
 			mainGroup = 4899639B2D382E4100B7156B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				48F194822D3D80E1005D4FBA /* XCRemoteSwiftPackageReference "LazyPager" */,
+				48F1948A2D3D8E39005D4FBA /* XCRemoteSwiftPackageReference "InteractiveImageView" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 489963A52D382E4100B7156B /* Products */;
 			projectDirPath = "";
@@ -560,6 +573,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		48F194822D3D80E1005D4FBA /* XCRemoteSwiftPackageReference "LazyPager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gh123man/LazyPager";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.7;
+			};
+		};
+		48F1948A2D3D8E39005D4FBA /* XCRemoteSwiftPackageReference "InteractiveImageView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vospennikov/InteractiveImageView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		48F194832D3D80E1005D4FBA /* LazyPager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48F194822D3D80E1005D4FBA /* XCRemoteSwiftPackageReference "LazyPager" */;
+			productName = LazyPager;
+		};
+		48F1948B2D3D8E39005D4FBA /* InteractiveImageView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 48F1948A2D3D8E39005D4FBA /* XCRemoteSwiftPackageReference "InteractiveImageView" */;
+			productName = InteractiveImageView;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4899639C2D382E4100B7156B /* Project object */;
 }
