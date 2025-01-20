@@ -3,7 +3,7 @@ import LazyPager
 import InteractiveImageView
 
 struct DoseDetailView: View {
-    @Bindable var entry: DoseEntry
+    @Binding var entry: DoseEntry
     @Environment(\.modelContext) private var modelContext
     @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
@@ -61,14 +61,14 @@ struct DoseDetailView: View {
                      if !selectedImages.isEmpty {
                          ScrollView(.horizontal, showsIndicators: false) {
                              HStack {
-                                 ForEach(selectedImages.indices, id: \.self) { index in
-                                     Image(uiImage: selectedImages[index])
+                                 ForEach(selectedImages, id: \.self) { image in
+                                     Image(uiImage: image)
                                          .resizable()
                                          .scaledToFit()
                                          .frame(height: 200)
                                          .cornerRadius(10)
                                          .onTapGesture {
-                                             selectedImageForZoom = selectedImages[index]
+                                             selectedImageForZoom = image
                                              showZoomedImage = true
                                          }
                                  }
@@ -94,6 +94,7 @@ struct DoseDetailView: View {
              .sheet(isPresented: $showZoomedImage) {
                  if let image = selectedImageForZoom {
                      InteractiveImage(image: image, zoomInteraction: .init(location: tapLocation, scale: 1.2, animated: true))
+                         .presentationDragIndicator(.visible)
                  }
              }
 //             .fullScreenCover(isPresented: $showZoomedImage) {
