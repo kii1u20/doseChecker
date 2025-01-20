@@ -9,7 +9,16 @@ struct HistoryView: View {
     var body: some View {
         List {
             ForEach(entries) { entry in
-                NavigationLink(destination: DoseDetailView(entry: entry)) {
+                let binding = Binding(
+                    get: { entry },
+                    set: { newValue in
+                        entry.dose = newValue.dose
+                        entry.timestamp = newValue.timestamp
+                        entry.imageNames = newValue.imageNames
+                        try? modelContext.save()
+                    }
+                )
+                NavigationLink(destination: DoseDetailView(entry: binding)) {
                     HStack {
                         VStack(alignment: .leading) {
                             Text("\(entry.dose, specifier: "%.1f") mg")

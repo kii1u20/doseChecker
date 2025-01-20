@@ -3,7 +3,7 @@ import LazyPager
 import InteractiveImageView
 
 struct DoseDetailView: View {
-    @Bindable var entry: DoseEntry
+    @Binding var entry: DoseEntry
     @Environment(\.modelContext) private var modelContext
     @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
@@ -94,6 +94,7 @@ struct DoseDetailView: View {
              .sheet(isPresented: $showZoomedImage) {
                  if let image = selectedImageForZoom {
                      InteractiveImage(image: image, zoomInteraction: .init(location: tapLocation, scale: 1.2, animated: true))
+                         .presentationDragIndicator(.visible)
                  }
              }
 //             .fullScreenCover(isPresented: $showZoomedImage) {
