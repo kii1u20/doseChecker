@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SwiftData
 
 class DoseTrackerViewModel: ObservableObject {
     @AppStorage("currentDose") public var currentDoseString: String = ""
@@ -7,9 +8,7 @@ class DoseTrackerViewModel: ObservableObject {
     @AppStorage("weight") public var weight: String = ""
     @AppStorage("showWeightPrompt") public var showWeightPrompt: Bool = true
     @AppStorage("goalMgKg") public var goalMgKg: String = ""
-    
-    public var history: [DoseEntry] = []
-    
+        
     // Calculate maximum dose based on weight
     var maxDose: Double {
         guard let weightKg = Double(weight) else { return 0 }
@@ -25,39 +24,40 @@ class DoseTrackerViewModel: ObservableObject {
         return totalDose / (Double(weight) ?? 0)
     }
     
-    func reset() {
+    func reset(modelContext: ModelContext) {
         totalDose = 0
         currentDoseString = ""
-        history = []
-        saveHistory()
+        do {
+            try modelContext.delete(model: DoseEntry.self)
+        } catch {
+            print("Error clearing history: \(error)")
+        }
         FileManager.clearImageStorage()
     }
     
-    func addDose(dose: Double) {
+    func addDose(dose: Double, modelContext: ModelContext) {
         totalDose += dose
         currentDoseString = ""
         
         let newEntry = DoseEntry(id: UUID(), dose: dose, timestamp: Date())
-        history.append(newEntry)
-        saveHistory()
+        modelContext.insert(newEntry)
+        do {
+            try modelContext.save()
+//            loadHistory(modelContext: modelContext)  // Reload to get the latest data
+        } catch {
+            print("Error saving dose: \(error)")
+        }
     }
     
-    func saveHistory() {
-        do {
-            let data = try JSONEncoder().encode(history)
-            let fileURL = FileManager.documentsDirectory.appendingPathComponent("doseHistory.json")
-            try data.write(to: fileURL)
-        } catch {
-            print("Error saving history: \(error)")
-        }
-    }
 
-    func loadHistory() {
-        let fileURL = FileManager.documentsDirectory.appendingPathComponent("doseHistory.json")
-        if let data = try? Data(contentsOf: fileURL) {
-            if let decoded = try? JSONDecoder().decode([DoseEntry].self, from: data) {
-                history = decoded
-            }
-        }
-    }
+//    func loadHistory(modelContext: ModelContext) {
+//         do {
+//             let descriptor = FetchDescriptor<DoseEntry>(
+//                 sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+//             )
+//             history = try modelContext.fetch(descriptor)
+//         } catch {
+//             print("Error loading history: \(error)")
+//         }
+//     }
 }
