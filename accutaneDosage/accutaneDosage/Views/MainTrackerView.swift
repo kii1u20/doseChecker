@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTrackerView: View {
     @EnvironmentObject var doseTrackerVM: DoseTrackerViewModel
+    @Environment(\.modelContext) private var modelContext
     @FocusState var isDoseFieldFocused: Bool
     
     var body: some View {
@@ -46,7 +47,7 @@ struct MainTrackerView: View {
                 Button("Dose Taken") {
                     if let dose = Double(doseTrackerVM.currentDoseString) {
                         withAnimation {
-                            doseTrackerVM.addDose(dose: dose)
+                            doseTrackerVM.addDose(dose: dose, modelContext: modelContext)
                         }
                     }
                 }
@@ -69,7 +70,7 @@ struct MainTrackerView: View {
             Spacer()
             
             NavigationLink {
-                HistoryView(history: $doseTrackerVM.history, totalDose: doseTrackerVM.$totalDose, saveAction: doseTrackerVM.saveHistory)
+                HistoryView(totalDose: doseTrackerVM.$totalDose)
             } label: {
                 Label("View History", systemImage: "clock.arrow.circlepath")
                     .font(.headline)

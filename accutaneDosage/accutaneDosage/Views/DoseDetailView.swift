@@ -3,15 +3,14 @@ import LazyPager
 import InteractiveImageView
 
 struct DoseDetailView: View {
-    @Binding var entry: DoseEntry
+    @Bindable var entry: DoseEntry
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
     @State private var selectedImageForZoom: UIImage?
     @State private var showZoomedImage = false
     @State var tapLocation: CGPoint = .zero
     @State var opacity: CGFloat = 0 // Dismiss gesture background opacity
-
-    var saveAction: () -> Void
     
     private func saveImages(_ images: [UIImage]) {
         var imageNames: [String] = []
@@ -29,6 +28,12 @@ struct DoseDetailView: View {
             entry.imageNames = imageNames
         } else {
             entry.imageNames?.append(contentsOf: imageNames)
+        }
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving images: \(error)")
         }
     }
     
@@ -84,7 +89,6 @@ struct DoseDetailView: View {
                  ImagePicker(images: $selectedImages)
                      .onDisappear() {
                          saveImages(selectedImages)
-                         saveAction()
                      }
              }
              .sheet(isPresented: $showZoomedImage) {
