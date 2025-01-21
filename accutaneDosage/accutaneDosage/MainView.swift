@@ -44,9 +44,9 @@ struct MainView: View {
             }
             .animation(.easeInOut(duration: 0.3), value: doseTrackerVM.showWeightPrompt)
         }
-//        .task {
-//            doseTrackerVM.loadHistory(modelContext: modelContext)
-//        }
+        .task {
+            doseTrackerVM.loadInitialData(modelContext: modelContext)
+        }
     }
     
     
