@@ -54,7 +54,8 @@ struct MainView: View {
 }
 
 #Preview {
-    let container = try! ModelContainer(for: DoseEntry.self)
+    let previewSchema = Schema([DoseEntry.self, DoseImage.self])
+    let container = try! ModelContainer(for: previewSchema)
     
     MainView()
         .environmentObject(DoseTrackerViewModel())
