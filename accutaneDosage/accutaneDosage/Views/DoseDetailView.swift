@@ -8,7 +8,7 @@ struct DoseDetailView: View {
     @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
     @State private var selectedImageForZoom: Int?
-    @State var opacity: CGFloat = 0
+    @State private var notes: String = ""
     
     private func loadImages() {
         DispatchQueue.main.async {
@@ -44,7 +44,6 @@ struct DoseDetailView: View {
     var body: some View {
         ZStack {
             ScrollView {
-                //                if let entry = entry {
                 VStack(spacing: 20) {
                     // Dose and timestamp display
                     Group {
@@ -81,9 +80,23 @@ struct DoseDetailView: View {
                         Label("Add Images", systemImage: "photo.fill")
                     }
                     .buttonStyle(.bordered)
+                    
+                    Text("Add any notes below")
+                        .font(.title)
+                        .bold()
+                    
+                    TextEditor(text: $notes)
+                        .padding(.vertical)
+                        .padding(.horizontal)
+                        .foregroundColor(.primary)
+                        .scrollContentBackground(.hidden) // Hide default background
+                        .background(
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color(UIColor.systemGray6))
+                        )
+                        .frame(minHeight: 100)
                 }
                 .padding()
-                //                }
             }
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(images: $selectedImages) { newImages in
@@ -102,6 +115,8 @@ struct DoseDetailView: View {
                         image: selectedImages[index],
                         zoomInteraction: .init(location: .zero, scale: 1.2, animated: true)
                     )
+                    .padding(.top)
+                    .ignoresSafeArea(.all)
                     .presentationDragIndicator(.visible)
                     .id(index)
                 }
@@ -113,4 +128,3 @@ struct DoseDetailView: View {
         }
     }
 }
-
