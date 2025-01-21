@@ -4,10 +4,11 @@ import PhotosUI
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var images: [UIImage]
     @Environment(\.presentationMode) var presentationMode
+    var onSelectionComplete: (([UIImage]) -> Void)?  // Add completion handler
     
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
-        config.selectionLimit = 0  // 0 means no limit
+        config.selectionLimit = 0
         config.filter = .images
         
         let picker = PHPickerViewController(configuration: config)
@@ -23,6 +24,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     
     class Coordinator: NSObject, PHPickerViewControllerDelegate {
         let parent: ImagePicker
+        var selectedImages: [UIImage] = []
         
         init(_ parent: ImagePicker) {
             self.parent = parent
@@ -31,13 +33,24 @@ struct ImagePicker: UIViewControllerRepresentable {
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             parent.presentationMode.wrappedValue.dismiss()
             
+            let group = DispatchGroup()
+            
             for result in results {
+                group.enter()
                 result.itemProvider.loadObject(ofClass: UIImage.self) { image, error in
                     if let image = image as? UIImage {
                         DispatchQueue.main.async {
-                            self.parent.images.append(image)
+                            self.selectedImages.append(image)
                         }
                     }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                if !self.selectedImages.isEmpty {
+                    self.parent.images.append(contentsOf: self.selectedImages)
+                    self.parent.onSelectionComplete?(self.selectedImages)
                 }
             }
         }

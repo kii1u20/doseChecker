@@ -6,97 +6,92 @@ struct DoseDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Binding var entry: DoseEntry
     @State private var selectedImages: [UIImage] = []
-    @State private var imagePickerImages: [UIImage] = []
     @State private var showImagePicker = false
     @State private var selectedImageForZoom: Int?
     @State var opacity: CGFloat = 0
     
     private func loadImages() {
-        guard let images = entry.images else { return }
-        selectedImages = images.compactMap {
-            return UIImage(data: $0.imageData)
+        DispatchQueue.main.async {
+            guard let images = entry.images else { return }
+            let uiImages = images.compactMap { UIImage(data: $0.imageData) }
+            self.selectedImages = uiImages
         }
     }
     
     private func saveImages(_ images: [UIImage]) {
-        // Create DoseImage objects
-        let newImages = images.compactMap { image -> DoseImage? in
-            guard let imageData = image.jpegData(compressionQuality: 0.8) else { return nil }
-            return DoseImage(imageData: imageData, entry: entry)
-        }
-        
-        // Update entry
-        if entry.images == nil {
-            entry.images = newImages
-        } else {
-            entry.images?.append(contentsOf: newImages)
-        }
-        entry.hasImages = true
-        
-        // Insert new images into context
-        newImages.forEach { modelContext.insert($0) }
-        
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error saving images: \(error)")
+        DispatchQueue.main.async {
+            let compressedImages = images.compactMap { image -> DoseImage? in
+                guard let data = image.jpegData(compressionQuality: 0.8) else { return nil }
+                return DoseImage(imageData: data, entry: entry)
+            }
+            
+            if entry.images == nil {
+                entry.images = compressedImages
+            } else {
+                entry.images?.append(contentsOf: compressedImages)
+            }
+            entry.hasImages = true
+            
+            compressedImages.forEach { modelContext.insert($0) }
+            do {
+                try modelContext.save()
+            } catch {
+                print("Error saving images: \(error)")
+            }
         }
     }
     
     var body: some View {
         ZStack {
             ScrollView {
-//                if let entry = entry {
-                    VStack(spacing: 20) {
-                        // Dose and timestamp display
-                        Group {
-                            Text("\(entry.dose, specifier: "%.1f") mg")
-                                .font(.title)
-                                .bold()
-                            
-                            Text(entry.timestamp.formatted(date: .long, time: .complete))
-                                .foregroundColor(.secondary)
-                        }
+                //                if let entry = entry {
+                VStack(spacing: 20) {
+                    // Dose and timestamp display
+                    Group {
+                        Text("\(entry.dose, specifier: "%.1f") mg")
+                            .font(.title)
+                            .bold()
                         
-                        // Display images
-                        if !selectedImages.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: true) {
-                                HStack {
-                                    ForEach(selectedImages.indices, id: \.self) { index in
-                                        Image(uiImage: selectedImages[index])
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(height: 200)
-                                            .cornerRadius(10)
-                                            .onTapGesture {
-                                                selectedImageForZoom = index
-                                            }
-                                    }
+                        Text(entry.timestamp.formatted(date: .long, time: .complete))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Display images
+                    if !selectedImages.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: true) {
+                            HStack {
+                                ForEach(selectedImages.indices, id: \.self) { index in
+                                    Image(uiImage: selectedImages[index])
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 200)
+                                        .cornerRadius(10)
+                                        .onTapGesture {
+                                            selectedImageForZoom = index
+                                        }
                                 }
                             }
                         }
-                        
-                        // Button to add new images
-                        Button(action: {
-                            showImagePicker = true
-                        }) {
-                            Label("Add Images", systemImage: "photo.fill")
-                        }
-                        .buttonStyle(.bordered)
                     }
-                    .padding()
-//                }
+                    
+                    // Button to add new images
+                    Button(action: {
+                        showImagePicker = true
+                    }) {
+                        Label("Add Images", systemImage: "photo.fill")
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding()
+                //                }
             }
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(images: $imagePickerImages)
-                    .onDisappear() {
-                        if imagePickerImages.isEmpty { return }
-                        
-                        selectedImages.append(contentsOf: imagePickerImages)
-                        saveImages(imagePickerImages)
-                        imagePickerImages.removeAll()
+                ImagePicker(images: $selectedImages) { newImages in
+                    if !newImages.isEmpty {
+                        saveImages(newImages)
                     }
-                    .presentationDragIndicator(.visible)
+                }
+                .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: Binding(
                 get: { selectedImageForZoom != nil },
