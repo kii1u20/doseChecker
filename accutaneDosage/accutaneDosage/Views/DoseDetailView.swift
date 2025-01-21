@@ -107,6 +107,7 @@ struct DoseDetailView: View {
                 }
             }
         }
+        .navigationTitle("Details")
         .task {
             loadImages()
         }

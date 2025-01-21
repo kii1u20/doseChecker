@@ -7,7 +7,7 @@ final class DoseEntry {
     var dose: Double
     var timestamp: Date
     var hasImages: Bool
-    @Relationship(deleteRule: .cascade) var images: [DoseImage]?
+    @Relationship(deleteRule: .cascade, inverse: \DoseImage.entry) var images: [DoseImage]?
     
     init(id: UUID = UUID(), dose: Double, timestamp: Date = Date()) {
         self.id = id
