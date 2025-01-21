@@ -56,14 +56,14 @@ struct DoseDetailView: View {
                      if !selectedImages.isEmpty {
                          ScrollView(.horizontal, showsIndicators: false) {
                              HStack {
-                                 ForEach(selectedImages.indices, id: \.self) { index in
-                                     Image(uiImage: selectedImages[index])
+                                 ForEach(selectedImages, id: \.self) { image in
+                                     Image(uiImage: image)
                                          .resizable()
                                          .scaledToFit()
                                          .frame(height: 200)
                                          .cornerRadius(10)
                                          .onTapGesture {
-                                             selectedImageForZoom = selectedImages[index]
+                                             selectedImageForZoom = image
                                              showZoomedImage = true
                                          }
                                  }
