@@ -28,18 +28,23 @@ class DoseTrackerViewModel: ObservableObject {
     }
     
     func loadInitialData(modelContext: ModelContext) {
-        do {
-            var descriptor = FetchDescriptor<DoseEntry>(
-                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-            )
-            descriptor.propertiesToFetch = [
-                \DoseEntry.id,
-                 \DoseEntry.dose,
-                 \DoseEntry.timestamp
-            ]
-            entries = try modelContext.fetch(descriptor)
-        } catch {
-            print("Error loading initial data: \(error)")
+        DispatchQueue.main.async {
+            do {
+                var descriptor = FetchDescriptor<DoseEntry>(
+                    sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+                )
+                descriptor.propertiesToFetch = [
+                    \DoseEntry.id,
+                    \DoseEntry.dose,
+                    \DoseEntry.timestamp
+                ]
+                let fetchedEntries = try modelContext.fetch(descriptor)
+                DispatchQueue.main.async {
+                    self.entries = fetchedEntries
+                }
+            } catch {
+                print("Error loading initial data: \(error)")
+            }
         }
     }
     
