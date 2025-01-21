@@ -1,19 +1,22 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 import InteractiveImageView
 
 struct DoseDetailView: View {
     @Binding var entry: DoseEntry
     @Environment(\.modelContext) private var modelContext
+    @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
-    @State private var tempSelectedImages: [UIImage] = [] // Temporary state for ImagePicker
     @State private var selectedImageForZoom: UIImage?
     @State private var showZoomedImage = false
     @State var tapLocation: CGPoint = .zero
+    @State var opacity: CGFloat = 0 // Dismiss gesture background opacity
 
-    // Save images directly to `entry.imageData`
+    // Convert UIImage to Data and store it in `entry.imageData`
     private func saveImages(_ images: [UIImage]) {
-        let newImageData = images.compactMap { $0.jpegData(compressionQuality: 0.8) }
+        let newImageData = images.compactMap { image -> Data? in
+            image.jpegData(compressionQuality: 0.8)
+        }
         
         if entry.imageData == nil {
             entry.imageData = newImageData
@@ -26,6 +29,12 @@ struct DoseDetailView: View {
         } catch {
             print("Error saving images: \(error)")
         }
+    }
+
+    // Convert `entry.imageData` back to an array of UIImages
+    private func loadImages() -> [UIImage] {
+        guard let imageDataArray = entry.imageData else { return [] }
+        return imageDataArray.compactMap { UIImage(data: $0) }
     }
 
     var body: some View {
@@ -42,22 +51,20 @@ struct DoseDetailView: View {
                             .foregroundColor(.secondary)
                     }
 
-                    // Display images directly from `entry.imageData`
-                    if let imageDataArray = entry.imageData, !imageDataArray.isEmpty {
+                    // Display images
+                    if !selectedImages.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
-                                ForEach(imageDataArray, id: \.self) { imageData in
-                                    if let image = UIImage(data: imageData) {
-                                        Image(uiImage: image)
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(height: 200)
-                                            .cornerRadius(10)
-                                            .onTapGesture {
-                                                selectedImageForZoom = image
-                                                showZoomedImage = true
-                                            }
-                                    }
+                                ForEach(selectedImages, id: \.self) { image in
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 200)
+                                        .cornerRadius(10)
+                                        .onTapGesture {
+                                            selectedImageForZoom = image
+                                            showZoomedImage = true
+                                        }
                                 }
                             }
                         }
@@ -74,13 +81,9 @@ struct DoseDetailView: View {
                 .padding()
             }
             .sheet(isPresented: $showImagePicker) {
-                // Pass a temporary binding to ImagePicker
-                ImagePicker(images: $tempSelectedImages)
-                    .onDisappear {
-                        if !tempSelectedImages.isEmpty {
-                            saveImages(tempSelectedImages) // Save selected images to entry
-                            tempSelectedImages.removeAll() // Clear temporary storage
-                        }
+                ImagePicker(images: $selectedImages)
+                    .onDisappear() {
+                        saveImages(selectedImages)
                     }
             }
             .sheet(isPresented: $showZoomedImage) {
@@ -89,6 +92,9 @@ struct DoseDetailView: View {
                         .presentationDragIndicator(.visible)
                 }
             }
+        }
+        .task {
+            selectedImages = loadImages() // Load images when the view appears
         }
     }
 }
