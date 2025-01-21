@@ -4,33 +4,14 @@ import InteractiveImageView
 
 struct DoseDetailView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var entry: DoseEntry?
+    @Binding var entry: DoseEntry
     @State private var selectedImages: [UIImage] = []
     @State private var imagePickerImages: [UIImage] = []
     @State private var showImagePicker = false
     @State private var selectedImageForZoom: Int?
     @State var opacity: CGFloat = 0
-        
-    let entryId: UUID
     
-    private func loadEntry() {
-        do {
-            let descriptor = FetchDescriptor<DoseEntry>(
-                predicate: #Predicate<DoseEntry> { entry in
-                    entry.id == entryId
-                }
-            )
-            if let loadedEntry = try modelContext.fetch(descriptor).first {
-                entry = loadedEntry
-                // Now load images separately
-                loadImages(for: loadedEntry)
-            }
-        } catch {
-            print("Error loading entry: \(error)")
-        }
-    }
-    
-    private func loadImages(for entry: DoseEntry) {
+    private func loadImages() {
         guard let images = entry.images else { return }
         selectedImages = images.compactMap {
             return UIImage(data: $0.imageData)
@@ -38,21 +19,19 @@ struct DoseDetailView: View {
     }
     
     private func saveImages(_ images: [UIImage]) {
-        guard let currentEntry = entry else { return }
-        
         // Create DoseImage objects
         let newImages = images.compactMap { image -> DoseImage? in
             guard let imageData = image.jpegData(compressionQuality: 0.8) else { return nil }
-            return DoseImage(imageData: imageData, entry: currentEntry)
+            return DoseImage(imageData: imageData, entry: entry)
         }
         
         // Update entry
-        if currentEntry.images == nil {
-            currentEntry.images = newImages
+        if entry.images == nil {
+            entry.images = newImages
         } else {
-            currentEntry.images?.append(contentsOf: newImages)
+            entry.images?.append(contentsOf: newImages)
         }
-        currentEntry.hasImages = true
+        entry.hasImages = true
         
         // Insert new images into context
         newImages.forEach { modelContext.insert($0) }
@@ -67,7 +46,7 @@ struct DoseDetailView: View {
     var body: some View {
         ZStack {
             ScrollView {
-                if let entry = entry {
+//                if let entry = entry {
                     VStack(spacing: 20) {
                         // Dose and timestamp display
                         Group {
@@ -106,7 +85,7 @@ struct DoseDetailView: View {
                         .buttonStyle(.bordered)
                     }
                     .padding()
-                }
+//                }
             }
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(images: $imagePickerImages)
@@ -129,12 +108,12 @@ struct DoseDetailView: View {
                         zoomInteraction: .init(location: .zero, scale: 1.2, animated: true)
                     )
                     .presentationDragIndicator(.visible)
-                    .id(UUID())
+                    .id(index)
                 }
             }
         }
         .task {
-            loadEntry()
+            loadImages()
         }
     }
 }
