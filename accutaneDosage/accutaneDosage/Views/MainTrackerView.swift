@@ -37,11 +37,17 @@ struct MainTrackerView: View {
                 }
                 .font(.subheadline)
                 
-                // New dose input
-                TextField("Enter dose (mg)", text: doseTrackerVM.$currentDoseString)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.decimalPad)
-                    .focused($isDoseFieldFocused)
+                //New dose input
+                TextField(
+                    "Enter dose (mg)",
+                    text: doseTrackerVM.$currentDoseString
+                )
+                .padding(.vertical)
+                .padding(.horizontal)
+                .background(
+                    Color(UIColor.systemGray6)
+                )
+                .clipShape(Capsule(style: .continuous))
                 
                 // Add dose button
                 Button("Dose Taken") {
