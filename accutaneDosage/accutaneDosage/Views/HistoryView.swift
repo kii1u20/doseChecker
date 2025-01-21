@@ -3,22 +3,13 @@ import SwiftData
 
 struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \DoseEntry.timestamp, order: .reverse) private var entries: [DoseEntry]
+    @EnvironmentObject var viewModel: DoseTrackerViewModel
     @Binding var totalDose: Double
     
     var body: some View {
         List {
-            ForEach(entries) { entry in
-                let binding = Binding(
-                    get: { entry },
-                    set: { newValue in
-                        entry.dose = newValue.dose
-                        entry.timestamp = newValue.timestamp
-                        entry.imageData = newValue.imageData
-                        try? modelContext.save()
-                    }
-                )
-                NavigationLink(destination: DoseDetailView(entry: binding)) {
+            ForEach(viewModel.entries) { entry in
+                NavigationLink(destination: DoseDetailView(entryId: entry.id)) {
                     HStack {
                         VStack(alignment: .leading) {
                             Text("\(entry.dose, specifier: "%.1f") mg")
@@ -28,7 +19,7 @@ struct HistoryView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        if entry.imageData?.isEmpty == false {
+                        if entry.hasImages {
                             Spacer()
                             Image(systemName: "photo.fill")
                                 .foregroundColor(.blue)
@@ -36,23 +27,10 @@ struct HistoryView: View {
                     }
                 }
             }
-            .onDelete(perform: deleteEntries)
+            .onDelete { indexSet in
+                viewModel.deleteEntry(at: indexSet, modelContext: modelContext)
+            }
         }
         .navigationTitle("Dose History")
-    }
-    
-    private func deleteEntries(at offsets: IndexSet) {
-        for index in offsets {
-            let entry = entries[index]
-            totalDose -= entry.dose
-            modelContext.delete(entry)
-        }
-        
-        // Save changes
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error deleting entries: \(error)")
-        }
     }
 }
