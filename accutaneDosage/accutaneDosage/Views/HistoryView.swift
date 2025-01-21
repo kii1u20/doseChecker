@@ -14,7 +14,7 @@ struct HistoryView: View {
                     set: { newValue in
                         entry.dose = newValue.dose
                         entry.timestamp = newValue.timestamp
-                        entry.imageNames = newValue.imageNames
+                        entry.imageData = newValue.imageData
                         try? modelContext.save()
                     }
                 )
@@ -28,7 +28,7 @@ struct HistoryView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        if entry.imageNames?.isEmpty == false {
+                        if entry.imageData?.isEmpty == false {
                             Spacer()
                             Image(systemName: "photo.fill")
                                 .foregroundColor(.blue)
@@ -46,13 +46,6 @@ struct HistoryView: View {
             let entry = entries[index]
             totalDose -= entry.dose
             modelContext.delete(entry)
-            
-            // Delete associated images if they exist
-            if let imageNames = entry.imageNames {
-                for imageName in imageNames {
-//                    FileManager.deleteImage(named: imageName)
-                }
-            }
         }
         
         // Save changes

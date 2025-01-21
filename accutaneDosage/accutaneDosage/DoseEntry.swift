@@ -6,12 +6,12 @@ final class DoseEntry {
     var id: UUID
     var dose: Double
     var timestamp: Date
-    var imageNames: [String]?
+    @Attribute(.externalStorage) var imageData: [Data]?
     
-    init(id: UUID = UUID(), dose: Double, timestamp: Date = Date(), imageNames: [String]? = nil) {
+    init(id: UUID = UUID(), dose: Double, timestamp: Date = Date(), imageData: [Data]? = nil) {
         self.id = id
         self.dose = dose
         self.timestamp = timestamp
-        self.imageNames = imageNames
+        self.imageData = imageData
     }
 }
