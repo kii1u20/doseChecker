@@ -48,6 +48,7 @@ struct MainTrackerView: View {
                     Color(UIColor.systemGray6)
                 )
                 .clipShape(Capsule(style: .continuous))
+                .keyboardType(.numberPad)
                 
                 // Add dose button
                 Button("Dose Taken") {

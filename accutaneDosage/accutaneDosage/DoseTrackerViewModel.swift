@@ -28,22 +28,14 @@ class DoseTrackerViewModel: ObservableObject {
     }
     
     func loadInitialData(modelContext: ModelContext) {
-        DispatchQueue.main.async {
+        Task {
             do {
-                var descriptor = FetchDescriptor<DoseEntry>(
-                    sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-                )
-                descriptor.propertiesToFetch = [
-                    \DoseEntry.id,
-                    \DoseEntry.dose,
-                    \DoseEntry.timestamp
-                ]
-                let fetchedEntries = try modelContext.fetch(descriptor)
-                DispatchQueue.main.async {
-                    self.entries = fetchedEntries
+                let loadedEntries = try await DoseModelActor.shared.loadEntries()
+                await MainActor.run {
+                    entries = loadedEntries
                 }
             } catch {
-                print("Error loading initial data: \(error)")
+                print("Error loading history entries: \(error)")
             }
         }
     }
@@ -54,13 +46,14 @@ class DoseTrackerViewModel: ObservableObject {
         
         // Clear entries from memory
         entries.removeAll()
-        
-        do {
-            try modelContext.delete(model: DoseEntry.self)
-            try modelContext.save()
-        } catch {
-            print("Error clearing history: \(error)")
+        Task {
+            do {
+                try await DoseModelActor.shared.clearAllEntries()
+            } catch {
+                print("Error clearing history: \(error)")
+            }
         }
+        
     }
     
     func addDose(dose: Double, modelContext: ModelContext) {
@@ -71,27 +64,26 @@ class DoseTrackerViewModel: ObservableObject {
         // Update in-memory array
         entries.insert(newEntry, at: 0)  // Insert at beginning since sorted by newest
         
-        modelContext.insert(newEntry)
-        
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error saving dose: \(error)")
+        Task {
+            do {
+                try await DoseModelActor.shared.addDose(entry: newEntry)
+            } catch {
+                print("Error saving dose: \(error)")
+            }
         }
     }
     
     func deleteEntry(at indexSet: IndexSet, modelContext: ModelContext) {
-        for index in indexSet {
-            let entry = entries[index]
-            totalDose -= entry.dose
-            entries.remove(at: index)
-            modelContext.delete(entry)
-        }
-        
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error deleting entries: \(error)")
+        let entry = entries[indexSet.first!]
+        totalDose -= entry.dose
+        entries.remove(at: indexSet.first!)
+        Task {
+            do {
+                try await DoseModelActor.shared.deleteEntry(entry)
+            } catch {
+                print ("Error deleting entry: \(error)")
+            }
+            
         }
     }
 }
