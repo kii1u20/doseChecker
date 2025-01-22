@@ -16,6 +16,7 @@ struct accutaneDosageApp: App {
         do {
             let schema = Schema([DoseEntry.self, DoseImage.self])
             container = try ModelContainer(for: schema)
+            DoseModelActor.initialize(container: container)
         } catch {
             fatalError("Failed to initialize ModelContainer: \(error)")
         }

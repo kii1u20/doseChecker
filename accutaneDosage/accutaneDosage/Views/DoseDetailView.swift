@@ -10,6 +10,7 @@ struct DoseDetailView: View {
     @State private var selectedImageForZoom: Int?
     @State private var notes: String = ""
     
+    
     //MARK: - Main view
     var body: some View {
         ZStack {
@@ -104,67 +105,41 @@ struct DoseDetailView: View {
     
     //MARK: - loading information from the SwiftData database
     private func loadNotes() {
-        DispatchQueue.main.async {
-            notes = entry.note?.text ?? ""
+        Task {
+            let loadedNotes = await DoseModelActor.shared.loadNotes(for: entry)
+            await MainActor.run {
+                notes = loadedNotes
+            }
         }
     }
     
     private func loadImages() {
-        DispatchQueue.main.async {
-            guard let images = entry.images else { return }
-            let uiImages = images.compactMap { UIImage(data: $0.imageData) }
-            self.selectedImages = uiImages
+        Task {
+            let loadedImages = await DoseModelActor.shared.loadImages(for: entry)
+            await MainActor.run {
+                selectedImages = loadedImages
+            }
         }
     }
     
     //MARK: - saving information to the SwiftData database
     private func saveNotes() {
-        DispatchQueue.main.async {
-            if notes.isEmpty && entry.note != nil {
-                modelContext.delete(entry.note!)
-                entry.note = nil
-                entry.hasNote = false
-            } else if !notes.isEmpty {
-                if let existingNote = entry.note {
-                    existingNote.text = notes
-                } else {
-                    let newNote = DoseNote(text: notes, entry: entry)
-                    entry.note = newNote
-                    entry.hasNote = true
-                    modelContext.insert(newNote)
-                }
-            }
-            
+        Task {
             do {
-                try modelContext.save()
+                try await DoseModelActor.shared.saveNote(text: notes, for: entry)
             } catch {
-                print("Error saving notes: \(error)")
+                print("error saving notes")
             }
         }
     }
     
     private func saveImages(_ images: [UIImage]) {
-        DispatchQueue.main.async {
-            let compressedImages = images.compactMap { image -> DoseImage? in
-                guard let data = image.jpegData(compressionQuality: 0.8) else { return nil }
-                return DoseImage(imageData: data, entry: entry)
-            }
-            
-            if entry.images == nil {
-                entry.images = compressedImages
-            } else {
-                entry.images?.append(contentsOf: compressedImages)
-            }
-            entry.hasImages = true
-            
-            compressedImages.forEach { modelContext.insert($0) }
+        Task {
             do {
-                try modelContext.save()
+                try await DoseModelActor.shared.saveImages(images, for: entry)
             } catch {
-                print("Error saving images: \(error)")
+                print("error saving images")
             }
         }
     }
-    
-    
 }
