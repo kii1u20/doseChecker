@@ -9,6 +9,7 @@ struct DoseDetailView: View {
     @State private var showImagePicker = false
     @State private var selectedImageForZoom: Int?
     @State private var notes: String = ""
+    @FocusState var isNotesFieldFocused: Bool
     
     
     //MARK: - Main view
@@ -55,7 +56,6 @@ struct DoseDetailView: View {
                     Text("Add any notes below")
                         .font(.title)
                         .bold()
-                    
                     TextEditor(text: $notes)
                         .padding(.vertical)
                         .padding(.horizontal)
@@ -69,6 +69,8 @@ struct DoseDetailView: View {
                         .onChange(of: notes) { _, _ in
                             saveNotes()
                         }
+                        .focused($isNotesFieldFocused)
+                    Spacer()
                 }
                 .padding()
             }
@@ -100,6 +102,9 @@ struct DoseDetailView: View {
         .task {
             loadNotes()
             loadImages()
+        }
+        .onTapGesture {
+            isNotesFieldFocused = false
         }
     }
     
