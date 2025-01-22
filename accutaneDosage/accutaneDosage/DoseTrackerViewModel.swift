@@ -61,7 +61,6 @@ class DoseTrackerViewModel: ObservableObject {
         } catch {
             print("Error clearing history: \(error)")
         }
-        FileManager.clearImageStorage()
     }
     
     func addDose(dose: Double, modelContext: ModelContext) {
