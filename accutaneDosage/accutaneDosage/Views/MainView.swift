@@ -54,7 +54,7 @@ struct MainView: View {
 }
 
 #Preview {
-    let previewSchema = Schema([DoseEntry.self, DoseImage.self])
+    let previewSchema = Schema([DoseEntry.self, DoseImage.self, DoseNote.self])
     let container = try! ModelContainer(for: previewSchema)
     
     MainView()
