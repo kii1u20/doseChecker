@@ -49,6 +49,7 @@ struct MainTrackerView: View {
                 )
                 .clipShape(Capsule(style: .continuous))
                 .keyboardType(.numberPad)
+                .focused($isDoseFieldFocused)
                 
                 // Add dose button
                 Button("Dose Taken") {
