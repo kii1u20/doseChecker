@@ -62,9 +62,11 @@ actor DoseModelActor {
     
     // MARK: - Image Operations
     func saveImages(_ images: [UIImage], for entry: DoseEntry) throws {
-        let compressedImages = images.compactMap { image -> DoseImage? in
+        let existingCount = entry.images?.count ?? 0
+        
+        let compressedImages = images.enumerated().compactMap { offset, image -> DoseImage? in
             guard let data = image.heicData() else { return nil }
-            return DoseImage(imageData: data, entry: entry)
+            return DoseImage(imageData: data, entry: entry, sortIndex: existingCount + offset)
         }
         
         if entry.images == nil {
@@ -80,6 +82,8 @@ actor DoseModelActor {
     
     func loadImages(for entry: DoseEntry) -> [UIImage] {
         guard let images = entry.images else { return [] }
-        return images.compactMap { UIImage(data: $0.imageData) }
+        return images
+            .sorted(by: { $0.sortIndex < $1.sortIndex})
+            .compactMap { UIImage(data: $0.imageData) }
     }
 }

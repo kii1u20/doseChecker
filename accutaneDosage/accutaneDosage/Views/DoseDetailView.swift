@@ -125,6 +125,9 @@ struct DoseDetailView: View {
             let loadedImages = await DoseModelActor.shared.loadImages(for: entry)
             await MainActor.run {
                 selectedImages = loadedImages
+//                for img in selectedImages {
+//                    print(img.self)
+//                }
             }
         }
     }
