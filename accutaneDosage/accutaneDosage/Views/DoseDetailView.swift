@@ -1,115 +1,152 @@
+import SwiftData
 import SwiftUI
-import LazyPager
 import InteractiveImageView
 
 struct DoseDetailView: View {
+    @Environment(\.modelContext) private var modelContext
     @Binding var entry: DoseEntry
     @State private var selectedImages: [UIImage] = []
     @State private var showImagePicker = false
-    @State private var selectedImageForZoom: UIImage?
-    @State private var showZoomedImage = false
-    @State var tapLocation: CGPoint = .zero
-    @State var opacity: CGFloat = 0 // Dismiss gesture background opacity
-
-    var saveAction: () -> Void
+    @State private var selectedImageForZoom: Int?
+    @State private var notes: String = ""
+    @FocusState var isNotesFieldFocused: Bool
+    @Namespace private var animation  // Add this line
     
-    private func saveImages(_ images: [UIImage]) {
-        var imageNames: [String] = []
-        
-        for image in images {
-            let imageName = "\(entry.id)-\(UUID().uuidString).jpg"
-            if let imageData = image.jpegData(compressionQuality: 0.8) {
-                if FileManager.saveImage(imageData, withName: imageName) {
-                    imageNames.append(imageName)
+    //MARK: - Main view
+    var body: some View {
+        ZStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Dose and timestamp display
+                    Group {
+                        Text("\(entry.dose, specifier: "%.1f") mg")
+                            .font(.title)
+                            .bold()
+                        
+                        Text(entry.timestamp.formatted(date: .long, time: .complete))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Display images
+                    if !selectedImages.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: true) {
+                            HStack {
+                                ForEach(selectedImages.indices, id: \.self) { index in
+                                    Image(uiImage: selectedImages[index])
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 200)
+                                        .cornerRadius(10)
+                                        .onTapGesture {
+                                            selectedImageForZoom = index
+                                        }
+                                        .matchedTransitionSource(id: index, in: animation)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Button to add new images
+                    Button(action: {
+                        showImagePicker = true
+                    }) {
+                        Label("Add Images", systemImage: "photo.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Text("Add any notes below")
+                        .font(.title)
+                        .bold()
+                    TextEditor(text: $notes)
+                        .padding(.vertical)
+                        .padding(.horizontal)
+                        .foregroundColor(.primary)
+                        .scrollContentBackground(.hidden) // Hide default background
+                        .background(
+                            RoundedRectangle(cornerRadius: 25)
+                                .fill(Color(UIColor.systemGray6))
+                        )
+                        .frame(minHeight: 100)
+                        .onChange(of: notes) { _, _ in
+                            saveNotes()
+                        }
+                        .focused($isNotesFieldFocused)
+                    Spacer()
+                }
+                .padding()
+            }
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(images: $selectedImages) { newImages in
+                    if !newImages.isEmpty {
+                        saveImages(newImages)
+                    }
+                }
+                .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: Binding(
+                get: { selectedImageForZoom != nil },
+                set: { if !$0 { selectedImageForZoom = nil } }
+            )) {
+                if let index = selectedImageForZoom {
+                    InteractiveImage(
+                        image: selectedImages[index],
+                        zoomInteraction: .init(location: .zero, scale: 1.2, animated: true)
+                    )
+                    .padding(.top)
+                    .navigationTransition(.zoom(sourceID: index, in: animation))
+                    .ignoresSafeArea(.all)
+                    .presentationDragIndicator(.visible)
+                    .id(index)
                 }
             }
         }
-        
-        if entry.imageNames == nil {
-            entry.imageNames = imageNames
-        } else {
-            entry.imageNames?.append(contentsOf: imageNames)
+        .navigationTitle("Details")
+        .task {
+            loadNotes()
+            loadImages()
+        }
+        .onTapGesture {
+            isNotesFieldFocused = false
         }
     }
     
-    private func loadImages() -> [UIImage] {
-        guard let imageNames = entry.imageNames else { return [] }
-        return imageNames.compactMap { name in
-            guard let imageData = FileManager.loadImage(named: name) else { return nil }
-            return UIImage(data: imageData)
+    //MARK: - loading information from the SwiftData database
+    private func loadNotes() {
+        Task {
+            let loadedNotes = await DoseModelActor.shared.loadNotes(for: entry)
+            await MainActor.run {
+                notes = loadedNotes
+            }
         }
     }
     
-    var body: some View {
-         ZStack { // Use ZStack to layer the overlay
-             ScrollView {
-                 VStack(spacing: 20) {
-                     Group {
-                         Text("\(entry.dose, specifier: "%.1f") mg")
-                             .font(.title)
-                             .bold()
-
-                         Text(entry.timestamp.formatted(date: .long, time: .complete))
-                             .foregroundColor(.secondary)
-                     }
-
-                     if !selectedImages.isEmpty {
-                         ScrollView(.horizontal, showsIndicators: false) {
-                             HStack {
-                                 ForEach(selectedImages, id: \.self) { image in
-                                     Image(uiImage: image)
-                                         .resizable()
-                                         .scaledToFit()
-                                         .frame(height: 200)
-                                         .cornerRadius(10)
-                                         .onTapGesture {
-                                             selectedImageForZoom = image
-                                             showZoomedImage = true
-                                         }
-                                 }
-                             }
-                         }
-                     }
-
-                     Button(action: {
-                         showImagePicker = true
-                     }) {
-                         Label("Add Images", systemImage: "photo.fill")
-                     }
-                     .buttonStyle(.bordered)
-                 }
-                 .padding()
-             }
-             .sheet(isPresented: $showImagePicker) {
-                 ImagePicker(images: $selectedImages)
-                     .onDisappear() {
-                         saveImages(selectedImages)
-                         saveAction()
-                     }
-             }
-             .sheet(isPresented: $showZoomedImage) {
-                 if let image = selectedImageForZoom {
-                     InteractiveImage(image: image, zoomInteraction: .init(location: tapLocation, scale: 1.2, animated: true))
-                 }
-             }
-//             .fullScreenCover(isPresented: $showZoomedImage) {
-//                 if let image = selectedImageForZoom {
-//                     let imageData = image.jpegData(compressionQuality: 1.0) ?? Data()
-//                     let imageData2 = selectedImages[2].jpegData(compressionQuality: 1.0) ?? Data()
-//                     LazyPager(data: [imageData, imageData2]) { data in
-//                         Image(uiImage: UIImage(data: data)!)
-//                             .resizable()
-//                             .scaledToFit()
-//                     }
-//                     .zoomable(min: 1, max: 5)
-//                     .onDismiss() {
-//                         showZoomedImage = false
-//                     }
-//                 }
-//             }
-         }
-         .task {
-             selectedImages = loadImages()
-         }
-     }
- }
+    private func loadImages() {
+        Task {
+            let loadedImages = await DoseModelActor.shared.loadImages(for: entry)
+            await MainActor.run {
+                selectedImages = loadedImages
+            }
+        }
+    }
+    
+    //MARK: - saving information to the SwiftData database
+    private func saveNotes() {
+        Task {
+            do {
+                try await DoseModelActor.shared.saveNote(text: notes, for: entry)
+            } catch {
+                print("error saving notes")
+            }
+        }
+    }
+    
+    private func saveImages(_ images: [UIImage]) {
+        Task {
+            do {
+                try await DoseModelActor.shared.saveImages(images, for: entry)
+            } catch {
+                print("error saving images")
+            }
+        }
+    }
+}

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SwiftData
 
 class DoseTrackerViewModel: ObservableObject {
     @AppStorage("currentDose") public var currentDoseString: String = ""
@@ -8,7 +9,8 @@ class DoseTrackerViewModel: ObservableObject {
     @AppStorage("showWeightPrompt") public var showWeightPrompt: Bool = true
     @AppStorage("goalMgKg") public var goalMgKg: String = ""
     
-    public var history: [DoseEntry] = []
+    // Keep track of entries in memory
+    @Published private(set) var entries: [DoseEntry] = []
     
     // Calculate maximum dose based on weight
     var maxDose: Double {
@@ -25,39 +27,63 @@ class DoseTrackerViewModel: ObservableObject {
         return totalDose / (Double(weight) ?? 0)
     }
     
-    func reset() {
-        totalDose = 0
-        currentDoseString = ""
-        history = []
-        saveHistory()
-        FileManager.clearImageStorage()
+    func loadInitialData(modelContext: ModelContext) {
+        Task {
+            do {
+                let loadedEntries = try await DoseModelActor.shared.loadEntries()
+                await MainActor.run {
+                    entries = loadedEntries
+                }
+            } catch {
+                print("Error loading history entries: \(error)")
+            }
+        }
     }
     
-    func addDose(dose: Double) {
+    func reset(modelContext: ModelContext) {
+        totalDose = 0
+        currentDoseString = ""
+        
+        // Clear entries from memory
+        entries.removeAll()
+        Task {
+            do {
+                try await DoseModelActor.shared.clearAllEntries()
+            } catch {
+                print("Error clearing history: \(error)")
+            }
+        }
+        
+    }
+    
+    func addDose(dose: Double, modelContext: ModelContext) {
         totalDose += dose
         currentDoseString = ""
         
         let newEntry = DoseEntry(id: UUID(), dose: dose, timestamp: Date())
-        history.append(newEntry)
-        saveHistory()
-    }
-    
-    func saveHistory() {
-        do {
-            let data = try JSONEncoder().encode(history)
-            let fileURL = FileManager.documentsDirectory.appendingPathComponent("doseHistory.json")
-            try data.write(to: fileURL)
-        } catch {
-            print("Error saving history: \(error)")
+        // Update in-memory array
+        entries.insert(newEntry, at: 0)  // Insert at beginning since sorted by newest
+        
+        Task {
+            do {
+                try await DoseModelActor.shared.addDose(entry: newEntry)
+            } catch {
+                print("Error saving dose: \(error)")
+            }
         }
     }
-
-    func loadHistory() {
-        let fileURL = FileManager.documentsDirectory.appendingPathComponent("doseHistory.json")
-        if let data = try? Data(contentsOf: fileURL) {
-            if let decoded = try? JSONDecoder().decode([DoseEntry].self, from: data) {
-                history = decoded
+    
+    func deleteEntry(at indexSet: IndexSet, modelContext: ModelContext) {
+        let entry = entries[indexSet.first!]
+        totalDose -= entry.dose
+        entries.remove(at: indexSet.first!)
+        Task {
+            do {
+                try await DoseModelActor.shared.deleteEntry(entry)
+            } catch {
+                print ("Error deleting entry: \(error)")
             }
+            
         }
     }
 }

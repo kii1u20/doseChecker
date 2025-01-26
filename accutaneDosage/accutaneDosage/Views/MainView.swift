@@ -1,10 +1,12 @@
 import SwiftUI
+import SwiftData
 
 struct MainView: View {
     
     @State private var showingResetAlert = false
     
     @EnvironmentObject var doseTrackerVM: DoseTrackerViewModel
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         NavigationView {
@@ -32,7 +34,7 @@ struct MainView: View {
                         Button("Cancel", role: .cancel) { }
                         Button("Reset", role: .destructive) {
                             withAnimation {
-                                doseTrackerVM.reset()
+                                doseTrackerVM.reset(modelContext: modelContext)
                             }
                         }
                     } message: {
@@ -43,7 +45,7 @@ struct MainView: View {
             .animation(.easeInOut(duration: 0.3), value: doseTrackerVM.showWeightPrompt)
         }
         .task {
-            doseTrackerVM.loadHistory()
+            doseTrackerVM.loadInitialData(modelContext: modelContext)
         }
     }
     
@@ -52,6 +54,10 @@ struct MainView: View {
 }
 
 #Preview {
+    let previewSchema = Schema([DoseEntry.self, DoseImage.self, DoseNote.self])
+    let container = try! ModelContainer(for: previewSchema)
+    
     MainView()
         .environmentObject(DoseTrackerViewModel())
+        .modelContainer(container)
 }
