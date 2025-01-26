@@ -10,7 +10,7 @@ struct DoseDetailView: View {
     @State private var selectedImageForZoom: Int?
     @State private var notes: String = ""
     @FocusState var isNotesFieldFocused: Bool
-    
+    @Namespace private var animation  // Add this line
     
     //MARK: - Main view
     var body: some View {
@@ -40,6 +40,7 @@ struct DoseDetailView: View {
                                         .onTapGesture {
                                             selectedImageForZoom = index
                                         }
+                                        .matchedTransitionSource(id: index, in: animation)
                                 }
                             }
                         }
@@ -92,6 +93,7 @@ struct DoseDetailView: View {
                         zoomInteraction: .init(location: .zero, scale: 1.2, animated: true)
                     )
                     .padding(.top)
+                    .navigationTransition(.zoom(sourceID: index, in: animation))
                     .ignoresSafeArea(.all)
                     .presentationDragIndicator(.visible)
                     .id(index)

@@ -63,7 +63,7 @@ actor DoseModelActor {
     // MARK: - Image Operations
     func saveImages(_ images: [UIImage], for entry: DoseEntry) throws {
         let compressedImages = images.compactMap { image -> DoseImage? in
-            guard let data = image.jpegData(compressionQuality: 0.8) else { return nil }
+            guard let data = image.heicData() else { return nil }
             return DoseImage(imageData: data, entry: entry)
         }
         
@@ -74,7 +74,7 @@ actor DoseModelActor {
         }
         entry.hasImages = true
         
-        compressedImages.forEach { modelContext.insert($0) }
+//        compressedImages.forEach { modelContext.insert($0) }
         try modelContext.save()
     }
     
