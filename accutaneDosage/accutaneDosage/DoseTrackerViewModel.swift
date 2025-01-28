@@ -28,7 +28,7 @@ class DoseTrackerViewModel: ObservableObject {
     }
     
     func loadInitialData(modelContext: ModelContext) {
-        Task {
+        Task(priority: .background) {
             do {
                 let loadedEntries = try await DoseModelActor.shared.loadEntries()
                 await MainActor.run {
@@ -46,7 +46,7 @@ class DoseTrackerViewModel: ObservableObject {
         
         // Clear entries from memory
         entries.removeAll()
-        Task {
+        Task(priority: .background) {
             do {
                 try await DoseModelActor.shared.clearAllEntries()
             } catch {
@@ -64,7 +64,7 @@ class DoseTrackerViewModel: ObservableObject {
         // Update in-memory array
         entries.insert(newEntry, at: 0)  // Insert at beginning since sorted by newest
         
-        Task {
+        Task(priority: .background) {
             do {
                 try await DoseModelActor.shared.addDose(entry: newEntry)
             } catch {
@@ -77,7 +77,7 @@ class DoseTrackerViewModel: ObservableObject {
         let entry = entries[indexSet.first!]
         totalDose -= entry.dose
         entries.remove(at: indexSet.first!)
-        Task {
+        Task(priority: .background) {
             do {
                 try await DoseModelActor.shared.deleteEntry(entry)
             } catch {

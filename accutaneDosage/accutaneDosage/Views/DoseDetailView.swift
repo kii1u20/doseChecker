@@ -30,7 +30,7 @@ struct DoseDetailView: View {
                     // Display images
                     if !selectedImages.isEmpty {
                         ScrollView(.horizontal, showsIndicators: true) {
-                            HStack {
+                            LazyHStack {
                                 ForEach(selectedImages.indices, id: \.self) { index in
                                     Image(uiImage: selectedImages[index])
                                         .resizable()
@@ -101,7 +101,7 @@ struct DoseDetailView: View {
             }
         }
         .navigationTitle("Details")
-        .task {
+        .task(priority: .background) {
             loadNotes()
             loadImages()
         }
@@ -112,7 +112,7 @@ struct DoseDetailView: View {
     
     //MARK: - loading information from the SwiftData database
     private func loadNotes() {
-        Task {
+        Task(priority: .background) {
             let loadedNotes = await DoseModelActor.shared.loadNotes(for: entry)
             await MainActor.run {
                 notes = loadedNotes
@@ -121,20 +121,17 @@ struct DoseDetailView: View {
     }
     
     private func loadImages() {
-        Task {
+        Task(priority: .background) {
             let loadedImages = await DoseModelActor.shared.loadImages(for: entry)
             await MainActor.run {
                 selectedImages = loadedImages
-//                for img in selectedImages {
-//                    print(img.self)
-//                }
             }
         }
     }
     
     //MARK: - saving information to the SwiftData database
     private func saveNotes() {
-        Task {
+        Task(priority: .background) {
             do {
                 try await DoseModelActor.shared.saveNote(text: notes, for: entry)
             } catch {
@@ -144,7 +141,7 @@ struct DoseDetailView: View {
     }
     
     private func saveImages(_ images: [UIImage]) {
-        Task {
+        Task(priority: .background) {
             do {
                 try await DoseModelActor.shared.saveImages(images, for: entry)
             } catch {
