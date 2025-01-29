@@ -30,7 +30,7 @@ struct DoseDetailView: View {
                     // Display images
                     if !selectedImages.isEmpty {
                         ScrollView(.horizontal, showsIndicators: true) {
-                            LazyHStack {
+                            HStack {
                                 ForEach(selectedImages.indices, id: \.self) { index in
                                     Image(uiImage: selectedImages[index])
                                         .resizable()

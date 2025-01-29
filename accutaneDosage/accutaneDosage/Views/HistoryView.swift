@@ -7,20 +7,9 @@ struct HistoryView: View {
     @Binding var totalDose: Double
     @Namespace private var animation  // Add this line
     
-    private var groupedEntries: [Date: [DoseEntry]] {
-        Dictionary(grouping: viewModel.entries) { entry in
-            Calendar.current.startOfDay(for: entry.timestamp)
-        }
-    }
-    
-    // Sort dates in descending order
-    private var sortedDates: [Date] {
-        groupedEntries.keys.sorted(by: >)
-    }
-    
     var body: some View {
         List {
-            ForEach(sortedDates, id: \.self) { date in
+            ForEach(viewModel.sortedDates, id: \.self) { date in
                 Section(
                     header: HStack {
                         Spacer()
@@ -30,7 +19,7 @@ struct HistoryView: View {
                         Spacer()
                     }
                 ) {
-                    ForEach(groupedEntries[date] ?? []) { entry in
+                    ForEach(viewModel.groupedEntries[date] ?? []) { entry in
                         NavigationLink {
                             DoseDetailView(entry: binding(for: entry))
                         } label: {
@@ -52,12 +41,10 @@ struct HistoryView: View {
                         }
                     }
                     .onDelete { indexSet in
-                        // Convert section index to global index
                         if let firstIndex = indexSet.first,
-                           let entries = groupedEntries[date] {
-                            if let globalIndex = viewModel.entries.firstIndex(where: { $0.id == entries[firstIndex].id }) {
-                                viewModel.deleteEntry(at: IndexSet([globalIndex]), modelContext: modelContext)
-                            }
+                           let entries = viewModel.groupedEntries[date] {
+                            let entryToDelete = entries[firstIndex]
+                            viewModel.deleteEntry(entryToDelete, modelContext: modelContext)
                         }
                     }
                 }
@@ -75,6 +62,8 @@ private func binding(for entry: DoseEntry) -> Binding<DoseEntry> {
             entry.timestamp = newValue.timestamp
             entry.hasImages = newValue.hasImages
             entry.images = newValue.images
+            entry.hasNote = newValue.hasNote
+            entry.note = newValue.note
         }
     )
 }
